@@ -67,7 +67,7 @@ class Player(Bot):
 
         return hand_strength
 
-    def allocate_cards(self, my_cards):
+    '''def allocate_cards(self, my_cards):
         allocation = my_cards
         pass
 
@@ -104,7 +104,7 @@ class Player(Bot):
             self.strong_hole = True
         
         allocation = pairs + singles 
-        pass
+        pass'''
 
     def handle_new_round(self, game_state, round_state, active):
         '''
@@ -124,7 +124,7 @@ class Player(Bot):
         my_cards = round_state.hands[active]  # your cards
         big_blind = bool(active)  # True if you are the big blind
 
-        self.allocate_cards(my_cards) #allocate our cards to our board allocations
+        #self.allocate_cards(my_cards) #allocate our cards to our board allocations
 
     def handle_round_over(self, game_state, terminal_state, active):
         '''
@@ -149,20 +149,16 @@ class Player(Bot):
         self.round += 1 #keep track of round number
         
     def bet_weight(self):
-        rotation_cost = (BIG_BLIND + SMALL_BLIND) * ((NUM_ROUNDS - self.round)//2)
         fold_cost = BIG_BLIND*math.ceil((NUM_ROUNDS - self.round)/2) + SMALL_BLIND*math.ceil((NUM_ROUNDS - self.round)/2)
         
         if self.score < 0:
             average_gain_needed = -self.score/(NUM_ROUNDS-self.round+1)
-            return 1 + average_gain_needed/((BIG_BLIND+SMALL_BLIND)/2) #beef up our bets
+            return 1 + average_gain_needed/((BIG_BLIND+SMALL_BLIND)/2) #beef up our bets if losing
 
         else:
             average_loss_needed = self.score/(NUM_ROUNDS-self.round+1)
-            if self.score - fold_cost > 0:
-                return 0 #just start folding
-            else:
-                return 1 - average_loss_needed
-        
+            return 0 if self.score - fold_cost > 0 else 1 - average_loss_needed #play mich tighter or solely fold
+            
     def get_action(self, game_state, round_state, active):
         '''
         Where the magic happens - your code should implement this function.
@@ -206,8 +202,8 @@ class Player(Bot):
         strength *= bet_weight #if we're losing, play more hands, if we're winning play less hands
 
         #optional feature, folds once certain amount reached
-        '''if bet_weight == 0: #if we're up by enough, auto fold
-            return CheckAction() if CheckAction in legal_actions else FoldAction()''' 
+        if bet_weight == 0: #if we're up by enough, auto fold
+            return CheckAction() if CheckAction in legal_actions else FoldAction()
 
         if street < 3: #preflop
             raise_amount = int(bet_weight*(my_pip + continue_cost + strength*(pot_total + continue_cost)))
