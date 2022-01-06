@@ -47,8 +47,8 @@ class Player(Bot):
             opp_hole = draw[:_OPP]
             comm = draw[_OPP:]
 
-            our_hand = hole_cards + comm + board
-            opp_hand  = opp_hole + comm + board
+            our_hand = hole_cards + comm + board_cards
+            opp_hand  = opp_hole + comm + board_cards
 
             our_hand_value =  eval7.evaluate(our_hand)
             opp_hand_value = eval7.evaluate(opp_hand)
