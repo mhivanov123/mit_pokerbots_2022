@@ -170,7 +170,7 @@ class Player(Bot):
 
         bet_weight = self.bet_weight() #if we're losing, it will bump up our bet amounts
 
-        strength *= bet_weight #if we're losing, play more hands, if we're winning play less hands
+        
 
         #optional feature, folds once certain amount reached
         if bet_weight == 0: #if we're up by enough, auto fold
@@ -210,6 +210,7 @@ class Player(Bot):
             #_SCARY formula needs to be changed
             if self.round < 100:
                 _SCARY = continue_cost/(2*(opp_stack + continue_cost)) #take the minimum of opp bet/your stack and opp bet/opp stack
+
                 strength = max(0,strength - _SCARY)
             else:
                 _SCARY = self.scary_factor(continue_cost, opp_stack,street)
