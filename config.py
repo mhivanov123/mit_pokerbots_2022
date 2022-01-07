@@ -1,10 +1,14 @@
 # PARAMETERS TO CONTROL THE BEHAVIOR OF THE GAME ENGINE
 # DO NOT REMOVE OR RENAME THIS FILE
 PLAYER_1_NAME = 'A'
-PLAYER_1_PATH = './python_improved_betting'
+PLAYER_1_PATH = './players/improved_logic'
 # NO TRAILING SLASHES ARE ALLOWED IN PATHS
 PLAYER_2_NAME = 'B'
-PLAYER_2_PATH = './python_improved_logic'
+#<<<<<<< HEAD
+PLAYER_2_PATH = './players/improved_betting'
+#=======
+PLAYER_2_PATH = './players/improved_betting'
+#>>>>>>> 7642f4e762b52ed571e553b49d5073fd3d9ce061
 # GAME PROGRESS IS RECORDED HERE
 GAME_LOG_FILENAME = 'gamelog'
 # PLAYER_LOG_SIZE_LIMIT IS IN BYTES
