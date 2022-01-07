@@ -43,7 +43,6 @@ class Player(Bot):
             _COMM = 5 - len(board)
 
             draw = deck.peek(_OPP+_COMM)
-
             opp_hole = draw[:_OPP]
             comm = draw[_OPP:]
 
@@ -101,6 +100,21 @@ class Player(Bot):
         opp_cards = previous_state.hands[1-active]  # opponent's cards or [] if not revealed
         
         self.strong_hole = False #reset our strong hole flag
+        
+        
+    def preflop_action(self, strength, my_con, opp_con):
+        
+        pass
+
+
+    
+    def flop_action(self):
+        pass
+    
+    
+    def turn_action(self):
+        pass
+
 
     def get_action(self, game_state, round_state, active):
         '''
@@ -152,7 +166,8 @@ class Player(Bot):
         raise_amount = max(min_raise, raise_amount)
         raise_amount = min(max_raise, raise_amount)
 
-        if (RaiseAction in legal_actions and (raise_amount<= my_stack)):
+        # Only consider call action if pre-flop - want more information once flop comes out
+        if (street >= 3 and RaiseAction in legal_actions and (raise_amount<= my_stack)):
             temp_action = RaiseAction(raise_amount)
         elif (CallAction in legal_actions and (continue_cost <= my_stack)):
             temp_action = CallAction()
