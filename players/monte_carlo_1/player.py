@@ -64,45 +64,6 @@ class Player(Bot):
 
         return hand_strength
 
-    def allocate_cards(self, my_cards):
-        allocation = my_cards
-        pass
-
-        ranks = {}
-
-        for card in my_cards:
-            card_rank  = card[0]
-            card_suit = card[1]
-
-
-            if card_rank in ranks:
-                ranks[card_rank].append(card)
-            else:
-                ranks[card_rank] = [card]
-
-        pairs = [] #keeps track of the pairs that we have 
-        singles = [] #other 
-
-        for rank in ranks:
-            cards = ranks[rank]
-
-            if len(cards) == 1: #single card, can't be in a pair
-                singles.append(cards[0])
-            
-            elif len(cards) == 2 or len(cards) == 4: #a single pair or two pairs can be made here, add them all
-                pairs += cards
-            
-            else: #len(cards) == 3  A single pair plus an extra can be made here
-                pairs.append(cards[0])
-                pairs.append(cards[1])
-                singles.append(cards[2])
-
-        if len(pairs) > 0: #we found a pair! update our state to say that this is a strong round
-            self.strong_hole = True
-        
-        allocation = pairs + singles 
-        pass
-
     def handle_new_round(self, game_state, round_state, active):
         '''
         Called when a new round starts. Called NUM_ROUNDS times.
@@ -120,8 +81,6 @@ class Player(Bot):
         round_num = game_state.round_num  # the round number from 1 to NUM_ROUNDS
         my_cards = round_state.hands[active]  # your cards
         big_blind = bool(active)  # True if you are the big blind
-
-        self.allocate_cards(my_cards) #allocate our cards to our board allocations
 
     def handle_round_over(self, game_state, terminal_state, active):
         '''

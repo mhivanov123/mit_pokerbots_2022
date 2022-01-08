@@ -4,7 +4,6 @@ Simple example pokerbot, written in Python.
 
 import eval7
 import random
-import math
 from skeleton.actions import FoldAction, CallAction, CheckAction, RaiseAction
 from skeleton.states import GameState, TerminalState, RoundState
 from skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND
@@ -26,8 +25,6 @@ class Player(Bot):
         Returns:
         Nothing.
         '''
-        self.score = 0
-        self.round = 0
         
     def calc_strength(self,hole,board,iters):
         deck = eval7.Deck()
@@ -46,7 +43,6 @@ class Player(Bot):
             _COMM = 5 - len(board)
 
             draw = deck.peek(_OPP+_COMM)
-
             opp_hole = draw[:_OPP]
             comm = draw[_OPP:]
 
@@ -67,48 +63,6 @@ class Player(Bot):
 
         return hand_strength
 
-<<<<<<< HEAD
-=======
-    '''def allocate_cards(self, my_cards):
-        allocation = my_cards
-        pass
-
-        ranks = {}
-
-        for card in my_cards:
-            card_rank  = card[0]
-            card_suit = card[1]
-
-
-            if card_rank in ranks:
-                ranks[card_rank].append(card)
-            else:
-                ranks[card_rank] = [card]
-
-        pairs = [] #keeps track of the pairs that we have 
-        singles = [] #other 
-
-        for rank in ranks:
-            cards = ranks[rank]
-
-            if len(cards) == 1: #single card, can't be in a pair
-                singles.append(cards[0])
-            
-            elif len(cards) == 2 or len(cards) == 4: #a single pair or two pairs can be made here, add them all
-                pairs += cards
-            
-            else: #len(cards) == 3  A single pair plus an extra can be made here
-                pairs.append(cards[0])
-                pairs.append(cards[1])
-                singles.append(cards[2])
-
-        if len(pairs) > 0: #we found a pair! update our state to say that this is a strong round
-            self.strong_hole = True
-        
-        allocation = pairs + singles 
-        pass'''
-
->>>>>>> 878cc7a0cb26f9bf1d5274067f9dcd3bcb09140c
     def handle_new_round(self, game_state, round_state, active):
         '''
         Called when a new round starts. Called NUM_ROUNDS times.
@@ -127,11 +81,6 @@ class Player(Bot):
         my_cards = round_state.hands[active]  # your cards
         big_blind = bool(active)  # True if you are the big blind
 
-<<<<<<< HEAD
-=======
-        #self.allocate_cards(my_cards) #allocate our cards to our board allocations
-
->>>>>>> 878cc7a0cb26f9bf1d5274067f9dcd3bcb09140c
     def handle_round_over(self, game_state, terminal_state, active):
         '''
         Called when a round ends. Called NUM_ROUNDS times.
@@ -150,21 +99,23 @@ class Player(Bot):
         my_cards = previous_state.hands[active]  # your cards
         opp_cards = previous_state.hands[1-active]  # opponent's cards or [] if not revealed
         
+        self.strong_hole = False #reset our strong hole flag
         
-        self.score += my_delta #keep track of score
-        self.round += 1 #keep track of round number
         
-    def bet_weight(self):
-        fold_cost = BIG_BLIND*math.ceil((NUM_ROUNDS - self.round)/2) + SMALL_BLIND*math.ceil((NUM_ROUNDS - self.round)/2)
+    def preflop_action(self, strength, my_con, opp_con):
         
-        if self.score < 0:
-            average_gain_needed = -self.score/(NUM_ROUNDS-self.round+1)
-            return 1 + average_gain_needed/((BIG_BLIND+SMALL_BLIND)/2) #beef up our bets if losing
+        pass
 
-        else:
-            average_loss_needed = self.score/(NUM_ROUNDS-self.round+1)
-            return 0 if self.score - fold_cost > 0 else 1 - average_loss_needed #play mich tighter or solely fold
-            
+
+    
+    def flop_action(self):
+        pass
+    
+    
+    def turn_action(self):
+        pass
+
+
     def get_action(self, game_state, round_state, active):
         '''
         Where the magic happens - your code should implement this function.
@@ -201,26 +152,22 @@ class Player(Bot):
         _MONTE_CARLO_ITERS = 100
         strength = self.calc_strength(my_cards, board_cards, _MONTE_CARLO_ITERS)
 
-        #need to add more randomization to betting
-
-        bet_weight = self.bet_weight() #if we're losing, it will bump up our bet amounts
-
-        strength *= bet_weight #if we're losing, play more hands, if we're winning play less hands
-
-        #optional feature, folds once certain amount reached
-        if bet_weight == 0: #if we're up by enough, auto fold
-            return CheckAction() if CheckAction in legal_actions else FoldAction()
+        #raise logic
+        x,y = random.random(),random.random()
+        x = max(0.2,x)
+        x = min(0.6,x)
+        y = max(0.5,y)
 
         if street < 3: #preflop
-            raise_amount = int(bet_weight*(my_pip + continue_cost + strength*(pot_total + continue_cost)))
+            raise_amount = int(my_pip + continue_cost + strength*(pot_total + continue_cost))
         else: 
-            raise_amount = int(bet_weight*(my_pip + continue_cost + strength*(pot_total + continue_cost)))
+            raise_amount = int(my_pip + continue_cost + strength*(pot_total + continue_cost))
 
         raise_amount = max(min_raise, raise_amount)
         raise_amount = min(max_raise, raise_amount)
 
-        #incorporate bluffing here later
-        if (RaiseAction in legal_actions and (raise_amount<= my_stack)):
+        # Only consider call action if pre-flop - want more information once flop comes out
+        if (street >= 3 and RaiseAction in legal_actions and (raise_amount<= my_stack)):
             temp_action = RaiseAction(raise_amount)
         elif (CallAction in legal_actions and (continue_cost <= my_stack)):
             temp_action = CallAction()
@@ -229,10 +176,23 @@ class Player(Bot):
         else:
             temp_action = FoldAction()
 
+        #pot odds size of pot:size of bet
+
         if continue_cost > 0:
 
-            #_SCARY formula needs to be changed
-            _SCARY = continue_cost/(2*(opp_stack + continue_cost)) #take the minimum of opp bet/your stack and opp bet/opp stack
+            #opp_bet_to_pot = continue_cost/(pot_total - continue_cost)
+
+
+
+            _SCARY = continue_cost/(opp_stack + continue_cost) #take the minimum of opp bet/your stack and opp bet/opp stack
+            
+            '''_SCARY = 0
+            if continue_cost > 6:
+                _SCARY = 0.1
+            if continue_cost > 15:
+                _SCARY = 0.2
+            if continue_cost > 50:
+                _SCARY = 0.35'''
 
             strength = max(0,strength - _SCARY)
             pot_odds = continue_cost/(pot_total +continue_cost)
@@ -252,6 +212,7 @@ class Player(Bot):
                 my_action = temp_action
             else:
                 my_action = CheckAction()
+
 
         return my_action
 

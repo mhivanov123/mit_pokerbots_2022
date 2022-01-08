@@ -7,6 +7,8 @@ from skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND
 from skeleton.bot import Bot
 from skeleton.runner import parse_args, run_bot
 
+import eval7
+import random
 
 
 class Player(Bot):
@@ -24,46 +26,56 @@ class Player(Bot):
         Returns:
         Nothing.
         '''
-        
-        self.strong_hole = False #keep track of whether or not we have strong hole cards
-
-    def allocate_cards(self, my_cards):
-        ranks = {}
-
-        for card in my_cards:
-            card_rank  = card[0]
-            card_suit = card[1]
-
-
-            if card_rank in ranks:
-                ranks[card_rank].append(card)
-            else:
-                ranks[card_rank] = [card]
-
-        pairs = [] #keeps track of the pairs that we have 
-        singles = [] #other 
-
-        for rank in ranks:
-            cards = ranks[rank]
-
-            if len(cards) == 1: #single card, can't be in a pair
-                singles.append(cards[0])
-            
-            elif len(cards) == 2 or len(cards) == 4: #a single pair or two pairs can be made here, add them all
-                pairs += cards
-            
-            else: #len(cards) == 3  A single pair plus an extra can be made here
-                pairs.append(cards[0])
-                pairs.append(cards[1])
-                singles.append(cards[2])
-
-        if len(pairs) > 0: #we found a pair! update our state to say that this is a strong round
-            self.strong_hole = True
-        
-        allocation = pairs + singles 
-        pass
-
     
+    def calc_strength(self, hole, iters):
+        '''
+        A Monte carlo method that estimates the win probability of a pair of hole cards 
+
+        Args:
+        hole: list of 2 hole cards 
+        iters: number of times the sim is run
+        '''
+
+        deck = eval7.Deck() #deck of cards
+        hole_cards = [eval7.Card(card) for card in hole] #list of our hole cards
+
+        for card in hole_cards:
+            deck.cards.remove(card)
+
+        score = 0
+
+        for _ in range(iters):
+            deck.shuffle()
+
+            _COMM = 5 
+            _OPP = 2
+
+            draw = deck.peek(_COMM+_OPP)
+
+            opp_hole = draw[:_OPP]
+            community = draw[_OPP:]
+
+            our_hand = hole_cards + community
+            opp_hand = opp_hole + community
+
+            our_hand_value = eval7.evaluate(our_hand)
+            opp_hand_value = eval7.evaluate(opp_hand)
+
+            if our_hand_value > opp_hand_value:
+                score += 2 
+            
+            if our_hand_value == opp_hand_value:
+                score += 1 
+            
+            else:
+                score += 0
+        
+        hand_strength = score/(2*iters)
+
+        return hand_strength
+
+
+
 
     def handle_new_round(self, game_state, round_state, active):
         '''
@@ -83,8 +95,6 @@ class Player(Bot):
         my_cards = round_state.hands[active]  # your cards
         big_blind = bool(active)  # True if you are the big blind
 
-        self.allocate_cards(my_cards) #allocate our cards to our board allocations
-
     def handle_round_over(self, game_state, terminal_state, active):
         '''
         Called when a round ends. Called NUM_ROUNDS times.
@@ -103,8 +113,6 @@ class Player(Bot):
         my_cards = previous_state.hands[active]  # your cards
         opp_cards = previous_state.hands[1-active]  # opponent's cards or [] if not revealed
         
-        self.strong_hole = False #reset our strong hole flag
-
     def get_action(self, game_state, round_state, active):
         '''
         Where the magic happens - your code should implement this function.
@@ -129,39 +137,66 @@ class Player(Bot):
         continue_cost = opp_pip - my_pip  # the number of chips needed to stay in the pot
         my_contribution = STARTING_STACK - my_stack  # the number of chips you have contributed to the pot
         opp_contribution = STARTING_STACK - opp_stack  # the number of chips your opponent has contributed to the pot
-        net_upper_raise_bound = round_state.raise_bounds()
         stacks = [my_stack, opp_stack] #keep track of our stacks
-
-        net_cost = 0
+        
+        min_raise, max_raise = round_state.raise_bounds()
         my_action = None
 
-        if (RaiseAction in legal_actions and self.strong_hole): #only consider raising if the hand we have is strong
-            min_raise, max_raise = round_state.raise_bounds()
-            max_cost = max_raise - my_pip
+        pot_total = my_contribution + opp_contribution #total contributed at start of hand 
 
+        if street<3: #we're preflop
+            raise_amount = int(my_pip + continue_cost + 0.4*(pot_total + continue_cost))
+        else:
+            raise_amount = int(my_pip + continue_cost + 0.75*(pot_total + continue_cost))
 
-            if max_cost <= my_stack - net_cost: #make sure the max_cost is something we can afford! Must have at least this much left after our other costs
-                my_action = RaiseAction(max_raise) #GO ALL IN!!!
-                net_cost += max_cost
+        raise_amount = max([min_raise, raise_amount]) #make sure we have a valid raise
+        raise_amount = min([max_raise, raise_amount])        
+
+        raise_cost = raise_amount - my_pip #how much it costs to make that raise
+
+        if (RaiseAction in legal_actions and (raise_cost <= my_stack)): #only consider raising if the hand we have is strong
+            temp_action = RaiseAction(raise_amount)
+        elif (CallAction in legal_actions and (continue_cost <= my_stack)): #only consider raising if the hand we have is strong
+            temp_action = CallAction()
+        elif CheckAction in legal_actions:
+            temp_action = CheckAction()
+        else:
+            temp_action = FoldAction()
+
+        _MONTE_CARLO_ITERS = 100
+        strength = self.calc_strength(my_cards, _MONTE_CARLO_ITERS)
+
+        if continue_cost > 0:
+            _SCARY = 0 
+            if continue_cost > 6:
+                _SCARY = 0.15
+            if continue_cost > 12:
+                _SCARY = 0.25
+            if continue_cost > 50:
+                _SCARY = 0.35
             
-            elif CallAction in legal_actions[i]: # check-call
-                my_action = CallAction()
-                net_cost += continue_cost
+            
+            strength = max([0, strength - _SCARY])    
+            pot_odds = continue_cost/(pot_total + continue_cost)
 
+            if strength >= pot_odds:
+                if strength > 0.5 and random.random() < strength:
+                    my_action = temp_action
+            
+                else:
+                    my_action = CallAction()
+            
+            else:
+                my_action = FoldAction()
+        
+        else:
+            if random.random() < strength:
+                my_action = temp_action
+            
             else:
                 my_action = CheckAction()
-        elif CheckAction in legal_actions: #if we can call, do so
-            my_action = CheckAction()
-        else:
-            my_action = CallAction()
-            net_cost += continue_cost #add the cost of the continue to our net cost
-
 
         return my_action
-
-
-
-
         
 
 
