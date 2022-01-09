@@ -1,6 +1,10 @@
+import eval7
+import random
+from matplotlib.pyplot import draw
 import numpy as np
 import pandas as pd
 from config import NUM_ROUNDS
+from engine import Player
 from gamelog_parser import round, parse_gamelog
 
 
@@ -28,12 +32,12 @@ def action_interpretter(action, ccost = 0):
 
 def data_clean(rounds):
     # get info for each of the betting rounds if applicable
-    inputs = {
-        "pot":
-        "pod odds":
-        "win perc":
-        "continue cost":
-        "prev action type":
+    inputs = { ### TODO fill this out
+        "pot": None,
+        "pod odds": None,
+        "win perc": None,
+        "continue cost": None,
+        "prev action type": None
     }
 
     NUM_INPUT = 5
@@ -42,6 +46,7 @@ def data_clean(rounds):
     data = np.full((len(rounds), NUM_BET, NUM_INPUT), np.nan)  # filled with np.nan must remove for analysis
     for round in rounds:
         for r in range(round.last_betting_round()):
+            pass
             # will consider amount bet as output
             # will interpret ... as input:
             # pot amount, pot odds, W%, continue cost, previous action type

@@ -15,46 +15,53 @@ from round import Round, parse_gamelog
         total: total amount won by player
 """
 def visual(rounds, player = 0):
-    pfy, pfc = [], 'yo'
-    fx, fy, fc = [], [], 'mo'
-    tx, ty, tc = [], [], 'co'
-    rx, ry, rc = [], [], 'ro'
-    deltay, deltac = [], 'go'
+    pfy, pfc = [], 'yo'  # preflop
+    fx, fy, fc = [], [], 'mo'  # flop
+    tx, ty, tc = [], [], 'co'  # turn
+    rx, ry, rc = [], [], 'ro'  # river
+    psx, psy, psc = [[] for _ in range(4)], [[] for _ in range(4)], 'ko' # player strengths
+    opsx, opsy, opsc = [[] for _ in range(4)], [[] for _ in range(4)], 'ro' # opponent strengths
 
-    total = 0
-    # fig1 = plt.figure(figsize=(30,15))
-    # delta = fig1.add_subplot()
+
+    fig1 = plt.figure(figsize=(30,15))
+    strength = fig1.add_subplot()
     fig2 = plt.figure(figsize=(30,15))
     bets = fig2.add_subplot()
-
-    pot = 0
     for r in range(len(rounds)):
-        total += rounds[r].awards[(player+rounds[r].button)%2]
+        ps = rounds[r].calc_strength(player = player)
+        ops = rounds[r].calc_strength(player = (player+1)%2)
+        for b in range(4):
+            if ps[b]:
+                psx[b].append(r)
+                psy[b].append(ps[b])
+            if ops[b]:
+                opsx[b].append(r)
+                opsy[b].append(ops[b])
+
         last = rounds[r].last_betting_round()
-        pot = rounds[r].round_cost(0)
+        pot = rounds[r].continue_cost(0, player)
         pfy.append(pot)
-        deltay.append(total)
         if 1 <= last:
             fx.append(r+1)
-            fy.append(rounds[r].round_cost(1) - pot)
-            pot = rounds[r].round_cost(1)
+            fy.append(rounds[r].continue_cost(1, player))
         if 2 <= last:
             tx.append(r+1)
-            ty.append(rounds[r].round_cost(2) - pot)
-            pot = rounds[r].round_cost(2)
+            ty.append(rounds[r].continue_cost(2, player))
         if 3 <= last:
             rx.append(r+1)
-            ry.append(rounds[r].round_cost(3) - pot) 
-        pot = 0
+            ry.append(rounds[r].continue_cost(3, player)) 
     bets.set_title('Bets')
     bets.plot(pfy, pfc, label = 'Pre-Flop')
     bets.plot(fx, fy, fc, label = 'Flop')
     bets.plot(tx, ty, tc, label = 'Turn')
     bets.plot(rx, ry, rc, label = 'River')
-
-    # delta.set_title('Total')
-    # delta.plot(deltay, deltac, label = 'Total')
     bets.legend()
+
+    strength.set_title('Strength')
+    strength.plot(psx[3], psy[3], psc, label = "player river strength")
+    strength.plot(opsx[3], opsy[3], opsc, label = "opp. river strength")
+    strength.legend()
+    
     plt.show()
     
 

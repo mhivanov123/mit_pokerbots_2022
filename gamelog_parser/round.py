@@ -1,10 +1,10 @@
+import eval7
+import random
 import pandas as pd
 import os
 import sys
 from matplotlib import pyplot as plt
 import re
-
-from numpy import round_
 
 class Round:
     """
@@ -149,6 +149,99 @@ class Round:
         if round == 0:
             return self.round_cost(round, player) 
         return self.round_cost(round, player) - self.round_cost(round -1, player)
+
+
+    """
+        @return the hand strength calculations for the given player
+            at each betting round using the given cards. None is returned
+            for an index if that round has not been achieved
+        @param player, to have hand strength calculated
+        @param iters, the number of monte carlo iterations to run
+        @param swaps, bool to indicate if traditional or swap texas holdem 
+    """
+    def calc_strength(self, player = 0, iters = 400, swaps = True):
+        ret = [None for _ in range(4)]  # for each betting round 
+        pind = (player+self.button)%2
+        ret[0] = calc_strength(iters, self.cards[0][pind], [], swaps = swaps)
+        if len(self.comm) >= 3:
+            ret[1] = calc_strength(iters, self.cards[1][pind], self.comm[:3], swaps = swaps)
+        if len(self.comm) >= 4:
+            ret[2] = calc_strength(iters, self.cards[2][pind], self.comm[:4], swaps = swaps)
+        if len(self.comm) >= 5:
+            ret[3] = calc_strength(iters, self.cards[2][pind], self.comm, swaps = swaps)
+        return ret
+
+
+"""
+adjusted calculation from monte_calo_1
+@param hole: string rep of cards for the given player
+@param board: list of string rep community cards. 
+    * Will only calculate EV with given board
+@param swaps: indicates whether traditional or swap texas holdem (10%, 5%)
+@return an estimate of win percentages 
+
+** interprets swapped cards as out of deck (in reality they are at bottom of deck) 
+not optimized for swaps = False   
+"""
+def calc_strength(iters, hole, board, swaps = True):
+    _FLOP_SWAP = .1 if swaps else 0
+    _TURN_SWAP = .05 if swaps else 0 # subject to change
+
+    hole_cards = [eval7.Card(card) for card in hole]
+    board_cards = [eval7.Card(card) for card in board]
+    deck = eval7.Deck()  # initialize for each version
+    for card in hole_cards+board_cards:
+            deck.cards.remove(card)
+    
+    score = 0
+    for _ in range(iters):
+        deck.shuffle()  # shuffle for each iteration
+        random.seed()  # reset seed for each iteration
+        
+        # indices in terms of hole+deck to allow index if no swap (0,1)
+        players = [[0,1], [2, 3]]  # index of player cards
+        comm = set()  # index of community cards
+
+        # calculate swaps first so peek, not deal --> shuffle no init
+        cind = 4  # current unassigned index
+        if len(board) == 0:  # for flop
+            [comm.add(x) for x in range(cind, cind+3)]
+            cind += 3
+            for p in range(2):
+                for c in range(2): # two cards
+                    if random.random() <= _FLOP_SWAP: 
+                        players[p][c] = cind  # should work due to pidgeon hole
+                        cind += 1
+        if len(board) <= 3: # for turn
+            comm.add(cind)
+            cind += 1
+            for p in range(2):
+                for c in range(2): # two cards
+                    if random.random() <= _TURN_SWAP: 
+                        players[p][c] = cind  # should work due to pidgeon hole
+                        cind += 1
+        if len(board) <= 4:
+            comm.add(cind)
+
+        draw = hole_cards + deck.peek(cind+1) # index = (# cards - 1)
+        new_hand = [draw[x] for x in players[0]]  # if no swaps should be hole_cards
+        opp_hand = [draw[x] for x in players[1]]
+        comm = [draw[x] for x in comm]
+
+        our_hand = new_hand + comm + board_cards
+        opp_hand = opp_hand + comm + board_cards
+
+        our_hand_value =  eval7.evaluate(our_hand)
+        opp_hand_value = eval7.evaluate(opp_hand)
+
+        if our_hand_value > opp_hand_value:
+            score+=2
+        elif our_hand_value == opp_hand_value:
+            score+=1
+        else:
+            score+=0
+    hand_strength = score/(2*iters)
+    return hand_strength
 
 """
     @return list of parsed Round objects
