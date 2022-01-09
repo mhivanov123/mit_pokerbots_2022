@@ -230,7 +230,6 @@ def parse_gamelog(log_path):
                     continue_cost = 2
                 complete = True
             line = f.readline()  # None should pose no issue
-<<<<<<< HEAD:gamelog_parser/parser.py
     return rounds
 
 """
@@ -350,6 +349,3 @@ if __name__ == '__main__':
     visual(rounds, player = player)
     analysis(rounds, player = player)
     
-=======
-    return rounds
->>>>>>> 7216c5e471becf012137a9a828ffdd772c5a37ee:gamelog_parser/round.py
