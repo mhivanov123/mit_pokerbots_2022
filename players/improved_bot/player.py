@@ -4,6 +4,7 @@ Simple example pokerbot, written in Python.
 
 import eval7
 import random
+import math
 from skeleton.actions import FoldAction, CallAction, CheckAction, RaiseAction
 from skeleton.states import GameState, TerminalState, RoundState
 from skeleton.states import NUM_ROUNDS, STARTING_STACK, BIG_BLIND, SMALL_BLIND
@@ -25,41 +26,68 @@ class Player(Bot):
         Returns:
         Nothing.
         '''
+        self.score = 0
+        self.round = 0
         
-    def calc_strength(self,hole,board,iters):
-        deck = eval7.Deck()
-        hole_cards = [eval7.Card(card) for card in hole]
-        board_cards = [eval7.Card(card) for card in board]
+    def calc_strength(self, hole, iters, community = []):
+        ''' 
+        Using MC with iterations to evalute hand strength 
+        Args: 
+        hole - our hole carsd 
+        iters - number of times we run MC 
+        community - community cards
+        '''
 
-        for card in hole_cards+board_cards:
+        deck = eval7.Deck() # deck of cards
+        hole_cards = [eval7.Card(card) for card in hole] # our hole cards in eval7 friendly format
+
+        if community != []:
+            community_cards = [eval7.Card(card) for card in community]
+            for card in community_cards: #removing the current community cards from the deck
+                deck.cards.remove(card)
+
+        for card in hole_cards: #removing our hole cards from the deck
             deck.cards.remove(card)
+        
+        #may need to fix this later 
+        
+        
+        score = 0 
 
-        score = 0
-
-        for _ in range(iters):
+        for _ in range(iters): # MC the probability of winning
             deck.shuffle()
 
-            _OPP = 2
-            _COMM = 5 - len(board)
+            _COMM = 5 - len(community)
+            _OPP = 2 
 
-            draw = deck.peek(_OPP+_COMM)
+            draw = deck.peek(_COMM + _OPP)  
+            
             opp_hole = draw[:_OPP]
-            comm = draw[_OPP:]
+            alt_community = draw[_OPP:]
 
-            our_hand = hole_cards + comm + board_cards
-            opp_hand  = opp_hole + comm + board_cards
+            
+            if community == []:
+                our_hand = hole_cards  + alt_community
+                opp_hand = opp_hole  + alt_community
+            else: 
 
-            our_hand_value =  eval7.evaluate(our_hand)
+                our_hand = hole_cards + community_cards + alt_community
+                opp_hand = opp_hole + community_cards + alt_community
+
+
+            our_hand_value = eval7.evaluate(our_hand)
             opp_hand_value = eval7.evaluate(opp_hand)
 
             if our_hand_value > opp_hand_value:
-                score+=2
-            elif our_hand_value == opp_hand_value:
-                score+=1
-            else:
-                score+=0
+                score += 2 
 
-            hand_strength = score/(2*iters)
+            if our_hand_value == opp_hand_value:
+                score += 1 
+
+            else: 
+                score += 0        
+
+        hand_strength = score/(2*iters) # win probability 
 
         return hand_strength
 
@@ -99,22 +127,8 @@ class Player(Bot):
         my_cards = previous_state.hands[active]  # your cards
         opp_cards = previous_state.hands[1-active]  # opponent's cards or [] if not revealed
         
-        self.strong_hole = False #reset our strong hole flag
-        
-        
-    def preflop_action(self, strength, my_con, opp_con):
-        
-        pass
-
-
-    
-    def flop_action(self):
-        pass
-    
-    
-    def turn_action(self):
-        pass
-
+        self.score += my_delta #keep track of score
+        self.round += 1 #keep track of round number
 
     def get_action(self, game_state, round_state, active):
         '''
@@ -149,70 +163,62 @@ class Player(Bot):
         min_raise, max_raise = round_state.raise_bounds()
         pot_total = my_contribution + opp_contribution
 
-        _MONTE_CARLO_ITERS = 100
-        strength = self.calc_strength(my_cards, board_cards, _MONTE_CARLO_ITERS)
+        fold_cost = BIG_BLIND*math.ceil((NUM_ROUNDS - self.round)/2) + SMALL_BLIND*math.ceil((NUM_ROUNDS - self.round)/2)
+        if self.score - fold_cost > 2:
+            return CheckAction() if CheckAction in legal_actions else FoldAction()
 
-        #raise logic
-        x,y = random.random(),random.random()
-        x = max(0.2,x)
-        x = min(0.6,x)
-        y = max(0.5,y)
+        # raise logic 
+        if street <3: #preflop 
+            raise_amount = int(my_pip + continue_cost + 0.4*(pot_total + continue_cost))
+        else: #postflop
+            raise_amount = int(my_pip + continue_cost + 0.75*(pot_total + continue_cost))
 
-        if street < 3: #preflop
-            raise_amount = int(my_pip + continue_cost + strength*(pot_total + continue_cost))
-        else: 
-            raise_amount = int(my_pip + continue_cost + strength*(pot_total + continue_cost))
+        # ensure raises are legal
+        raise_amount = max([min_raise, raise_amount])
+        raise_amount = min([max_raise, raise_amount])
 
-        raise_amount = max(min_raise, raise_amount)
-        raise_amount = min(max_raise, raise_amount)
-
-        # Only consider call action if pre-flop - want more information once flop comes out
-        if (street >= 3 and RaiseAction in legal_actions and (raise_amount<= my_stack)):
+        if (street >= 3 and RaiseAction in legal_actions and (raise_amount <= my_stack)):
             temp_action = RaiseAction(raise_amount)
         elif (CallAction in legal_actions and (continue_cost <= my_stack)):
             temp_action = CallAction()
         elif CheckAction in legal_actions:
             temp_action = CheckAction()
         else:
-            temp_action = FoldAction()
+            temp_action = FoldAction() 
 
-        #pot odds size of pot:size of bet
+        _MONTE_CARLO_ITERS = 100
+        if street <3:
+            strength = self.calc_strength(my_cards, _MONTE_CARLO_ITERS)
+        else:
+            strength = self.calc_strength(my_cards, _MONTE_CARLO_ITERS, board_cards)
 
-        if continue_cost > 0:
-
-            #opp_bet_to_pot = continue_cost/(pot_total - continue_cost)
-
-
-
-            _SCARY = continue_cost/(opp_stack + continue_cost) #take the minimum of opp bet/your stack and opp bet/opp stack
-            
-            '''_SCARY = 0
+        if continue_cost > 0: 
+            _SCARY = 0
             if continue_cost > 6:
                 _SCARY = 0.1
-            if continue_cost > 15:
-                _SCARY = 0.2
-            if continue_cost > 50:
-                _SCARY = 0.35'''
+            if continue_cost > 15: 
+                _SCARY = .2
+            if continue_cost > 50: 
+                _SCARY = 0.35
 
-            strength = max(0,strength - _SCARY)
-            pot_odds = continue_cost/(pot_total +continue_cost)
+            strength = max(0, strength - _SCARY)
+            pot_odds = continue_cost/(pot_total + continue_cost)
 
-            if strength >= pot_odds:
-
-                if strength > 0.5 and random.random() < strength:
+            if strength >= pot_odds: # nonnegative EV decision
+                if strength > 0.5 and random.random() < strength: 
                     my_action = temp_action
-                else:
+                else: 
                     my_action = CallAction()
-
-            else:
+            
+            else: #negative EV
                 my_action = FoldAction()
-
-        else:
-            if random.random() < strength:
+                
+        else: # continue cost is 0  
+            if random.random() < strength: 
                 my_action = temp_action
-            else:
+            else: 
                 my_action = CheckAction()
-
+            
 
         return my_action
 

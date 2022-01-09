@@ -67,48 +67,6 @@ class Player(Bot):
 
         return hand_strength
 
-<<<<<<< HEAD
-=======
-    '''def allocate_cards(self, my_cards):
-        allocation = my_cards
-        pass
-
-        ranks = {}
-
-        for card in my_cards:
-            card_rank  = card[0]
-            card_suit = card[1]
-
-
-            if card_rank in ranks:
-                ranks[card_rank].append(card)
-            else:
-                ranks[card_rank] = [card]
-
-        pairs = [] #keeps track of the pairs that we have 
-        singles = [] #other 
-
-        for rank in ranks:
-            cards = ranks[rank]
-
-            if len(cards) == 1: #single card, can't be in a pair
-                singles.append(cards[0])
-            
-            elif len(cards) == 2 or len(cards) == 4: #a single pair or two pairs can be made here, add them all
-                pairs += cards
-            
-            else: #len(cards) == 3  A single pair plus an extra can be made here
-                pairs.append(cards[0])
-                pairs.append(cards[1])
-                singles.append(cards[2])
-
-        if len(pairs) > 0: #we found a pair! update our state to say that this is a strong round
-            self.strong_hole = True
-        
-        allocation = pairs + singles 
-        pass'''
-
->>>>>>> 878cc7a0cb26f9bf1d5274067f9dcd3bcb09140c
     def handle_new_round(self, game_state, round_state, active):
         '''
         Called when a new round starts. Called NUM_ROUNDS times.
@@ -127,11 +85,6 @@ class Player(Bot):
         my_cards = round_state.hands[active]  # your cards
         big_blind = bool(active)  # True if you are the big blind
 
-<<<<<<< HEAD
-=======
-        #self.allocate_cards(my_cards) #allocate our cards to our board allocations
-
->>>>>>> 878cc7a0cb26f9bf1d5274067f9dcd3bcb09140c
     def handle_round_over(self, game_state, terminal_state, active):
         '''
         Called when a round ends. Called NUM_ROUNDS times.
@@ -163,7 +116,7 @@ class Player(Bot):
 
         else:
             average_loss_needed = self.score/(NUM_ROUNDS-self.round+1)
-            return 0 if self.score - fold_cost > 0 else 1 - average_loss_needed #play mich tighter or solely fold
+            return 0 if self.score - fold_cost > 2 else 1 - average_loss_needed #play mich tighter or solely fold
             
     def get_action(self, game_state, round_state, active):
         '''
@@ -205,16 +158,17 @@ class Player(Bot):
 
         bet_weight = self.bet_weight() #if we're losing, it will bump up our bet amounts
 
-        strength *= bet_weight #if we're losing, play more hands, if we're winning play less hands
+        # strength *= bet_weight #if we're losing, play more hands, if we're winning play less hands
 
         #optional feature, folds once certain amount reached
         if bet_weight == 0: #if we're up by enough, auto fold
             return CheckAction() if CheckAction in legal_actions else FoldAction()
 
-        if street < 3: #preflop
-            raise_amount = int(bet_weight*(my_pip + continue_cost + strength*(pot_total + continue_cost)))
-        else: 
-            raise_amount = int(bet_weight*(my_pip + continue_cost + strength*(pot_total + continue_cost)))
+        # if street < 3: #preflop
+        raise_amount = int(bet_weight*(my_pip + continue_cost + strength*(pot_total + continue_cost)))
+        # else:
+        #     temp = my_pip + continue_cost + strength*(pot_total + continue_cost)
+        #     raise_amount = int(bet_weight*temp if self.score > 0 else temp) 
 
         raise_amount = max(min_raise, raise_amount)
         raise_amount = min(max_raise, raise_amount)

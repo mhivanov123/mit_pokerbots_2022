@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 import sys
 from matplotlib import pyplot as plt
 import re
@@ -342,7 +343,7 @@ if __name__ == '__main__':
     # run with path arg to gamelog: from gamelog_parser if interactive
     # from folder root if in terminal
     player = 0 # player 0 is challenger (always starts with button)
-    log_path = "gamelogs/sadge07.txt"
+    log_path = f"{os.getcwd()}/gamelog_parser/gamelogs/improved_betting.txt"
     rounds = parse(log_path)
     visual(rounds, player = player)
     analysis(rounds, player = player)
