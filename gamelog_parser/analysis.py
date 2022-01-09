@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 import sys
@@ -128,11 +129,14 @@ def analysis(rounds, player = 0):
 
     fig1 = plt.figure(figsize=(30,15))
     total = fig1.add_subplot()
-    total.set_title('Total')
+    total.set_title('Cummulative')
+    num_rounds = cols["data"][row_ind["All rounds"]][col_ind["Number Of Occurences"]]
+    total.plot(np.linspace(num_rounds*1.5, 0, num_rounds), "k--", label = "upper threshold")
+    total.plot(np.linspace(-num_rounds*1.5, 0, num_rounds), "k--", label = "lower threshold")
     total.plot(
         rows["occurrences"][row_ind["All rounds"]],
         cols["history"][row_ind["All rounds"]][col_ind["cummulative Delta"]],
-        "k-", label = 'Total')
+        "r-", label = 'Total')
     total.plot(
         rows["occurrences"][row_ind["face-offs"]],
         cols["history"][row_ind["face-offs"]][col_ind["cummulative Delta"]],
@@ -153,7 +157,7 @@ if __name__ == '__main__':
     # run with path arg to gamelog: from gamelog_parser if interactive
     # from folder root if in terminal
     player = 0 # player 0 is challenger (always starts with button)
-    log_path = "gamelogs/sadge07.txt"
+    log_path = "gamelogs/grandcentral1.txt"
     rounds = parse_gamelog(log_path)
     visual(rounds, player = player)
     analysis(rounds, player = player)
