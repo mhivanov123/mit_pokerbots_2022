@@ -1,4 +1,6 @@
-import gamelog_parser
+import numpy as np
+import pandas as pd
+from config import NUM_ROUNDS
 from gamelog_parser import round, parse_gamelog
 
 
@@ -21,11 +23,29 @@ def action_interpretter(action, ccost = 0):
         return int(action[1:])
 
 # make bet analysis' independent of each other
+# train model on independent betting round strats and overall strat. 
 
-def train(rounds):
+
+def data_clean(rounds):
+    # get info for each of the betting rounds if applicable
+    inputs = {
+        "pot":
+        "pod odds":
+        "win perc":
+        "continue cost":
+        "prev action type":
+    }
+
+    NUM_INPUT = 5
+    NUM_BET = 4
+
+    data = np.full((len(rounds), NUM_BET, NUM_INPUT), np.nan)  # filled with np.nan must remove for analysis
     for round in rounds:
         for r in range(round.last_betting_round()):
-            pass
+            # will consider amount bet as output
+            # will interpret ... as input:
+            # pot amount, pot odds, W%, continue cost, previous action type
+
 
 
 
@@ -35,3 +55,4 @@ if __name__ == '__main__':
     player = 0 # player 0 is challenger (always starts with button)
     log_path = "gamelogs/sadge07.txt"
     rounds = parse_gamelog(log_path)
+    pd.DataFrame()

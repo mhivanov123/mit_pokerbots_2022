@@ -1,5 +1,7 @@
 import re
 
+from numpy import round_
+
 class Round:
     """
         an object which keeps track of the information in a round of poker (with swaps)
@@ -111,11 +113,11 @@ class Round:
     """
     def round_cost(self, round, player = 0):
         last = self.last_betting_round()
-        winner = (self.winner != (player+1)%2) # if tie, both players are winner
+        winner = (self.winner() != (player+1)%2) # if tie, both players are winner
         if not winner and len(self.actions[0]) == 1:
             return 1  
         if round == 4:  # also handles case of tie
-            return self.awards[(player+1)%2]
+            return self.awards[(player+self.button)%2]
 
         total = 2
         # if a player folds, last raise is actions[last][-2] since a fold 
@@ -128,6 +130,21 @@ class Round:
                 if len(self.actions[r][a]) > 1: # only raises are more than 1 char
                     total += int(self.actions[r][a][1:])
         return total
+
+    """
+        @return The continue cost of the given round
+        calculated as the difference between rounds
+        @player, the player whose cost to determine
+        @param round, must be <= last betting round
+        * an input of 4 will be interpretted as 3
+        - ie the continue cost of the river
+    """
+    def continue_cost(self, round, player = 0):
+        if round == 4:
+            return self.awards[(player+self.button)%2]
+        if round == 0:
+            return self.round_cost(round, player) 
+        return self.round_cost(round, player) - self.round_cost(round -1, player)
 
 """
     @return list of parsed Round objects

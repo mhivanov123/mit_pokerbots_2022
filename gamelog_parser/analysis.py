@@ -2,8 +2,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 import sys
 
-import gamelog_parser
-from gamelog_parser.round import parse_gamelog
+from round import Round, parse_gamelog
 
 """
     @param rounds list of round objs
@@ -25,20 +24,26 @@ def visual(rounds, player = 0):
     delta = fig1.add_subplot()
     fig2 = plt.figure(figsize=(30,15))
     bets = fig2.add_subplot()
+
+    pot = 0
     for r in range(len(rounds)):
         total += rounds[r].awards[player]
         last = rounds[r].last_betting_round()
-        pfy.append(rounds[r].round_cost(0))
+        pot = rounds[r].round_cost(0)
+        pfy.append(pot)
         deltay.append(total)
         if 1 <= last:
             fx.append(r+1)
-            fy.append(rounds[r].round_cost(1))
+            fy.append(rounds[r].round_cost(1) - pot)
+            pot = rounds[r].round_cost(1)
         if 2 <= last:
             tx.append(r+1)
-            ty.append(rounds[r].round_cost(2))
+            ty.append(rounds[r].round_cost(2) - pot)
+            pot = rounds[r].round_cost(2)
         if 3 <= last:
             rx.append(r+1)
-            ry.append(rounds[r].round_cost(3)) 
+            ry.append(rounds[r].round_cost(3) - pot) 
+        pot = 0
     bets.set_title('Bets')
     bets.plot(pfy, pfc, label = 'Pre-Flop')
     bets.plot(fx, fy, fc, label = 'Flop')
@@ -82,7 +87,7 @@ def analysis(rounds, player = 0):
             4, 0, 1, 2, 3, 4, 4, 4] 
     }
 
-    delta = lambda round, r: round.round_cost(rows["delta_rnd"][r], player)
+    delta = lambda round, r: round.continue_cost(rows["delta_rnd"][r], player) # delta is the continue cost of interest
     avg = lambda avg0, sample, base0: (avg0*base0 + sample)/(base0+1)
     cols = {
         "names": [
