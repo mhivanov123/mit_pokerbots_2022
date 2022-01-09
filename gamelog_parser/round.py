@@ -3,7 +3,6 @@ import os
 import sys
 from matplotlib import pyplot as plt
 import re
-from typing import List
 
 class Round:
     """
@@ -134,9 +133,11 @@ class Round:
                     total += int(self.actions[r][a][1:])
         return total
 
-        
-
-def parse(log_path):
+"""
+    @return list of parsed Round objects
+    @param log_path, path to gamelog to be parsed
+"""
+def parse_gamelog(log_path):
     rx_dict = {
         'round': re.compile(r'Round #(?P<round>\d+), .*\((?P<cscore>-?\d+)\), .*\((?P<oscore>-?\d+)\)\n'), 
         'end': re.compile(r'\n'),
@@ -229,6 +230,7 @@ def parse(log_path):
                     continue_cost = 2
                 complete = True
             line = f.readline()  # None should pose no issue
+<<<<<<< HEAD:gamelog_parser/parser.py
     return rounds
 
 """
@@ -348,3 +350,6 @@ if __name__ == '__main__':
     visual(rounds, player = player)
     analysis(rounds, player = player)
     
+=======
+    return rounds
+>>>>>>> 7216c5e471becf012137a9a828ffdd772c5a37ee:gamelog_parser/round.py
