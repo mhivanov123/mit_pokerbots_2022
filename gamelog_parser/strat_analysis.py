@@ -3,28 +3,7 @@ import random
 from matplotlib.pyplot import draw
 import numpy as np
 import pandas as pd
-from config import NUM_ROUNDS
-from engine import Player
-from gamelog_parser import round, parse_gamelog
-
-
-"""
-    @return the amount which the player chooses to bet
-        indicated by the action given
-    @param action
-    @param ccost, continue cost for the betting round
-    * ccost only valid for raise or big blind response
-    * if a bigblind call enter 2, else raise amount
-"""
-def action_interpretter(action, ccost = 0):
-    if action == "F":
-        return 0
-    elif action == "K":
-        return 0
-    elif action == "C": 
-        return ccost
-    elif action[0] == "R":
-        return int(action[1:])
+from round import Round, parse_gamelog
 
 # make bet analysis' independent of each other
 # train model on independent betting round strats and overall strat. 

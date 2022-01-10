@@ -24,8 +24,6 @@ class Round:
         These atributes can be accessed without methods. Do not mutate
     """
     def __init__(self, round, button, comm, cards, actions, awards) -> None:
-        # 
-        # ie. 
         assert(round > 0)
         assert(button == 0 or button == 1)
         assert(len(comm) in {0,3,4,5})
@@ -39,18 +37,47 @@ class Round:
         self.actions = actions
         self.awards = awards
 
-    """
+    def action_amount_gen(self, round, player = 0):
+        """
+            Creates a useful iter/generator for consuming the actions for a round
+            @return a generator of (action amount, ccost) triplets
+                as the result of the actions of the given player in the given round 
+                * an action amount is the amount placed in the pot in response to some ccost
+                * round sunk cost, is the amount placed in then so far for the round
+            @param round, the round for which amounts are desired
+                round must be <= last_betting_round
+                if valid, round = 4 yields nothing
+        """
+        pturn = lambda a: (a + self.button)%2 == 0
+        ccost = 0
+        if round == 0 and self.button == player:
+            ccost = 1
+        for a in range(len(self.actions[round])):
+            action = self.actions[round][a]
+            amount = 0  # F and K
+            if action == "C": # betting should end with call 
+                amount = ccost
+            elif action[0] == "R":
+                amount = int(action[1:]) 
+
+            if pturn(a):
+                yield (amount, ccost)
+            else:
+                ccost = amount - ccost # for next player
+   
+    def winner(self) -> int:
+        """
         @ret player number if no tie
             else, return 2
         * adjusted for button
-    """
-    def winner(self) -> int:
+        """
         for p in range(2): # len(self.awards)
             if self.awards[p] > 0:
                 return (p+self.button)%2
         return 2
 
-    """
+    def swaps(self): # -> List[List[int], List[int]]
+        """
         @ret 
         2x2 list(s) of list of tuples indicating cards swapped
         ex. player 0 has Ad swapped for Kh on turn
@@ -61,13 +88,11 @@ class Round:
         ]
         First index: player number * adjusted for button
         Second index: 0 - flop swap, 1 - turn swap
-    """
-    def swaps(self): # -> List[List[int], List[int]]
+        """
         ret = [[],[]]
         for swap in range(2):
             for p in range(2):
                 player = (p+self.button)%2
-                swap_num = 0
                 swaps = []
                 for card in range(2):
                     if self.cards[swap][player][card] != self.cards[swap+1][player][card]:
@@ -75,23 +100,23 @@ class Round:
                 ret[player].append(swaps)
         return ret
 
-    """
+    def last_betting_round(self):
+        """
         @ret returns the number of betting rounds in this round
         0 - pre flop, 1 - flop, 2 - turn, 3 - river, 4 - showoff
         there is no amount bet during showoff. just for simplicity
-    """
-    def last_betting_round(self):
+        """
         for r in range(len(self.actions)):
             if 'F' == self.actions[r][-1]: # fold can only be last action
                 return r
         return 4
 
-    """
+    def fold(self):
+        """
         @ret if a player folds, return player number
             else return 2
         * adjusted for button order
-    """
-    def fold(self):
+        """
         last = self.last_betting_round()
         if last == 4:
             return 2
@@ -102,64 +127,45 @@ class Round:
         else:
             return (0+self.button)%2
 
-    """"
-        the amount of money the player puts in the pot by given round
+    def round_cost(self, round, player = 0):
+        """"
+        round_(sunk)cost
+        @return the amount of money the player puts in the pot by end of given round
+        ** if other player folds, this includes given player raise so >= award amount
+        calculated as the sum of continue costs
+        @param player whose contributions are being measured
+        * The amount only differs by player if one folds and round = last betting round
         @param round, the round to be summed
         ** round must be less than or equal to last_betting_round.
         - handles round = 4 as award given to player
-        @param player num, 
-        ** if other player folds, this returns, this includes last raise 
-        - this differs from award amount
-        @return the total cost for the given round (always positive)
-
-        * player is only relevant when there is a fold
-        and when round = last betting round
-    """
-    def round_cost(self, round, player = 0):
-        last = self.last_betting_round()
-        winner = (self.winner() != (player+1)%2) # if tie, both players are winner
-        if not winner and len(self.actions[0]) == 1:
-            return 1  
+        """
         if round == 4:  # also handles case of tie
             return self.awards[(player+self.button)%2]
+        return sum(self.continue_cost(r, player) for r in range(round+1))
 
-        total = 2
-        # if a player folds, last raise is actions[last][-2] since a fold 
-        # can only come after a raise except if round == 4 (handled above)
-        # this also implies len(actions[last]) >= 2
-        if round == last and not winner:
-            total -= int(self.actions[round][-2][1:])
-        for r in range(round+1): # round is <= 4
-            for a in range(len(self.actions[r])):
-                if len(self.actions[r][a]) > 1: # only raises are more than 1 char
-                    total += int(self.actions[r][a][1:])
-        return total
-
-    """
-        @return The continue cost of the given round
-        calculated as the difference between rounds
+    def continue_cost(self, round, player = 0):
+        """
+        @return The total paid continue cost of the given round
         @player, the player whose cost to determine
         @param round, must be <= last betting round
-        * an input of 4 will be interpretted as 3
-        - ie the continue cost of the river
-    """
-    def continue_cost(self, round, player = 0):
-        if round == 4:
+        * an input of 4 will be return awards
+        """
+        if round == 4:  # also handles case of tie
             return self.awards[(player+self.button)%2]
-        if round == 0:
-            return self.round_cost(round, player) 
-        return self.round_cost(round, player) - self.round_cost(round -1, player)
+        total = 1
+        for _ in range(len(self.actions[round])):
+            total += self.action_amount_gen(round, player = player)
+        return total
 
-
-    """
+    def calc_strength(self, player = 0, iters = 400, swaps = True):
+        """
         @return the hand strength calculations for the given player
             at each betting round using the given cards. None is returned
             for an index if that round has not been achieved
         @param player, to have hand strength calculated
         @param iters, the number of monte carlo iterations to run
         @param swaps, bool to indicate if traditional or swap texas holdem 
-    """
-    def calc_strength(self, player = 0, iters = 400, swaps = True):
+        """
         ret = [None for _ in range(4)]  # for each betting round 
         pind = (player+self.button)%2
         ret[0] = calc_strength(iters, self.cards[0][pind], [], swaps = swaps)

@@ -28,9 +28,9 @@ def visual(rounds, player = 0):
     fig2 = plt.figure(figsize=(30,15))
     bets = fig2.add_subplot()
     for r in range(len(rounds)):
-        ps = rounds[r].calc_strength(player = player)
-        ops = rounds[r].calc_strength(player = (player+1)%2)
-        for b in range(4):
+        ps = rounds[r].calc_strength(player = player, swaps = True)
+        ops = rounds[r].calc_strength(player = (player+1)%2, swaps = True)
+        for b in range(3):
             if ps[b]:
                 psx[b].append(r)
                 psy[b].append(ps[b])
@@ -58,10 +58,10 @@ def visual(rounds, player = 0):
     bets.legend()
 
     strength.set_title('Strength')
-    strength.plot(psx[3], psy[3], psc, label = "player river strength")
-    strength.plot(opsx[3], opsy[3], opsc, label = "opp. river strength")
+    strength.plot(psx[1], psy[1], psc, label = "player turn strength")
+    strength.plot(opsx[1], opsy[1], opsc, label = "opp. turn strength")
     strength.legend()
-    
+
     plt.show()
     
 
@@ -166,6 +166,6 @@ if __name__ == '__main__':
     player = 0 # player 0 is challenger (always starts with button)
     log_path = "gamelogs/grandcentral1.txt"
     rounds = parse_gamelog(log_path)
-    visual(rounds, player = player)
-    analysis(rounds, player = player)
+    #visual(rounds, player = player)
+    #analysis(rounds, player = player)
     

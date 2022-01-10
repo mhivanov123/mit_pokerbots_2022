@@ -26,6 +26,32 @@ class Player(Bot):
         Returns:
         Nothing.
         '''
+        # constants:
+        # big = 2, little = 1
+
+        self.rounds = 1000
+        self.total = 0
+
+
+        
+    """
+        @return risk to losing. ie passing the threshold.
+        @param the continue cost. After a bet is taken, this amount
+            is deduced from total for sunk cost 
+        calculated as the amount
+    """
+    def signifigance(self, amount):
+        return min(1, amount/(self.rounds*1.5+self.total))  # double negative
+
+    """
+        @return reward, how close to passing the threshold
+        @param the continue cost. After a bet is taken, this amount
+            is deduced from total for sunk cost 
+        calculated as the amount
+    """
+    def reward(self, amount):
+        return min(1, amount/(self.rounds*1.5-self.total))
+
     
     def calc_strength(self, hole, iters):
         '''
