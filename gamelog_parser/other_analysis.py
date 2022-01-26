@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import eval7
 import random
+import numpy as np
 
 def mc_accuracy():
     """
@@ -12,7 +13,7 @@ def mc_accuracy():
     NSAMPLES = 10000
     _FLOP_SWAP = .10
     _TURN_SWAP = 0.05  # should change this param to see var.
-    colors = ['ko', 'ro', 'bo', 'go', 'yo']
+    colors = ['ko', 'ro', 'bo', 'go', 'yo', 'mo']
     
     sizes = [20, 50, 100, 250, 1000]  # sizes of moving averages
 
@@ -22,14 +23,15 @@ def mc_accuracy():
         hole_cards = deck.deal(2)
 
         for csize in {0, 3, 4, 5}:  # symbols ,3,4,5
-            for swaps in {True, False}:
-                deck.shuffle()
-                board_cards = deck.deal(csize)
+            deck.shuffle()
+            board_cards = deck.deal(csize)
+            for swaps in {True}: # False
 
                 # all of the following are in reference to sizes
                 histories = [[] for _ in range(len(sizes))]  # historical hand_strength = scores[s]/(2*sizes[s])
                 results = [[0]*sizes[s] for s in range(len(sizes))] # results (+0, +1, +2) of sizes[s] simulated games
                 scores = [0 for _ in range(len(sizes))]  # current sums of win/tie/losses
+                avg_100 = []
 
                 for i in range(NSAMPLES):
                     deck.shuffle()  # shuffle for each iteration
@@ -94,6 +96,7 @@ def mc_accuracy():
                 plt.title(str(csize)+" comm. cards: swaps = " + str(swaps))
                 plt.legend()
                 plt.show()
+
 
 if __name__ == '__main__':
     mc_accuracy()

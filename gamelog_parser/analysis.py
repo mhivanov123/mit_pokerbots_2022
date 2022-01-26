@@ -166,6 +166,6 @@ if __name__ == '__main__':
     player = 0 # player 0 is challenger (always starts with button)
     log_path = "gamelogs/grandcentral1.txt"
     rounds = parse_gamelog(log_path)
-    #visual(rounds, player = player)
-    #analysis(rounds, player = player)
+    visual(rounds, player = player)
+    analysis(rounds, player = player)
     
